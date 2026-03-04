@@ -1,0 +1,39 @@
+-- iostream.emh - 标准输入输出头文件
+-- Emerging 2.0 版本
+
+-- 输出函数
+func out(str: ptr) -> void
+func out_num(num: int) -> void
+func out_char(c: byte) -> void
+
+-- 输入函数
+func in() -> byte
+func in_str(buf: ptr, len: int) -> int
+
+-- 文件操作
+func create(path: ptr) -> int
+func textfile(path: ptr, content: ptr) -> int
+func copyfile(src: ptr, dest: ptr) -> int
+func delete(path: ptr) -> int
+
+-- 系统命令
+func syscmd(cmd: ptr) -> int
+
+-- 磁盘操作
+namespace disk {
+    func read(sector: int, buffer: ptr, count: int) -> int
+    func write(sector: int, buffer: ptr, count: int) -> int
+}
+
+-- 硬件操作
+namespace hardware {
+    func port_out(port: int, data: byte) -> void
+    func port_in(port: int) -> byte
+    func interrupt(num: int) -> void
+}
+
+-- 内存操作
+namespace memory {
+    func copy(dest: ptr, src: ptr, len: int) -> ptr
+    func set(dest: ptr, val: byte, len: int) -> ptr
+}
