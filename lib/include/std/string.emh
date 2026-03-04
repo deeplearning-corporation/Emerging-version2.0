@@ -1,0 +1,169 @@
+-- 字符串处理函数
+
+-- 字符串长度
+func strlen(s: ptr) -> i32
+{
+    let len = 0
+    while s[len] != 0 {
+        len = len + 1
+    }
+    ret len
+}
+
+-- 字符串比较
+func strcmp(s1: ptr, s2: ptr) -> i32
+{
+    let i = 0
+    while s1[i] != 0 and s2[i] != 0 {
+        if s1[i] != s2[i] {
+            ret s1[i] - s2[i]
+        }
+        i = i + 1
+    }
+    ret s1[i] - s2[i]
+}
+
+-- 字符串比较（前n个字符）
+func strncmp(s1: ptr, s2: ptr, n: i32) -> i32
+{
+    let i = 0
+    while i < n and s1[i] != 0 and s2[i] != 0 {
+        if s1[i] != s2[i] {
+            ret s1[i] - s2[i]
+        }
+        i = i + 1
+    }
+    if i == n ret 0
+    ret s1[i] - s2[i]
+}
+
+-- 字符串复制
+func strcpy(dest: ptr, src: ptr) -> ptr
+{
+    let i = 0
+    while src[i] != 0 {
+        dest[i] = src[i]
+        i = i + 1
+    }
+    dest[i] = 0
+    ret dest
+}
+
+-- 字符串复制（限制长度）
+func strncpy(dest: ptr, src: ptr, n: i32) -> ptr
+{
+    let i = 0
+    while i < n and src[i] != 0 {
+        dest[i] = src[i]
+        i = i + 1
+    }
+    while i < n {
+        dest[i] = 0
+        i = i + 1
+    }
+    ret dest
+}
+
+-- 字符串连接
+func strcat(dest: ptr, src: ptr) -> ptr
+{
+    let dest_len = strlen(dest)
+    let i = 0
+    while src[i] != 0 {
+        dest[dest_len + i] = src[i]
+        i = i + 1
+    }
+    dest[dest_len + i] = 0
+    ret dest
+}
+
+-- 查找字符
+func strchr(s: ptr, c: i32) -> ptr
+{
+    let i = 0
+    while s[i] != 0 {
+        if s[i] == c ret &s[i]
+        i = i + 1
+    }
+    if c == 0 ret &s[i]
+    ret NULL
+}
+
+-- 查找子串
+func strstr(haystack: ptr, needle: ptr) -> ptr
+{
+    if needle[0] == 0 ret haystack
+    
+    let len1 = strlen(haystack)
+    let len2 = strlen(needle)
+    
+    let i = 0
+    while i <= len1 - len2 {
+        let j = 0
+        while j < len2 and haystack[i + j] == needle[j] {
+            j = j + 1
+        }
+        if j == len2 ret &haystack[i]
+        i = i + 1
+    }
+    
+    ret NULL
+}
+
+-- 字符串转整数
+func atoi(s: ptr) -> i32
+{
+    let result = 0
+    let sign = 1
+    let i = 0
+    
+    while s[i] == ' ' or s[i] == '\t' {
+        i = i + 1
+    }
+    
+    if s[i] == '-' {
+        sign = -1
+        i = i + 1
+    } elif s[i] == '+' {
+        i = i + 1
+    }
+    
+    while s[i] >= '0' and s[i] <= '9' {
+        result = result * 10 + (s[i] - '0')
+        i = i + 1
+    }
+    
+    ret sign * result
+}
+
+-- 整数转字符串
+func itoa(value: i32) -> ptr
+{
+    static buffer[12]: byte
+    let digits = "0123456789ABCDEF"
+    let p = &buffer[11]
+    p[0] = 0
+    let num = value
+    
+    if value == 0 {
+        buffer[10] = '0'
+        ret &buffer[10]
+    }
+    
+    if value < 0 {
+        num = -value
+    }
+    
+    while num != 0 {
+        p = p - 1
+        p[0] = digits[num % 10]
+        num = num / 10
+    }
+    
+    if value < 0 {
+        p = p - 1
+        p[0] = '-'
+    }
+    
+    ret p
+}

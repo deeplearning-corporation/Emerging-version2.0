@@ -1,0 +1,94 @@
+-- 数学函数
+
+const PI = 3.141592653589793
+const E = 2.718281828459045
+
+-- 绝对值
+func abs(x: i32) -> i32
+{
+    if x < 0 ret -x
+    ret x
+}
+
+-- 幂运算
+func pow(base: i32, exp: i32) -> i32
+{
+    let result = 1
+    let i = 0
+    while i < exp {
+        result = result * base
+        i = i + 1
+    }
+    ret result
+}
+
+-- 平方根（整数）
+func sqrt(x: i32) -> i32
+{
+    if x <= 0 ret 0
+    
+    let result = 0
+    let bit = 1 << 30
+    
+    while bit > x {
+        bit = bit >> 2
+    }
+    
+    while bit != 0 {
+        if x >= result + bit {
+            x = x - result - bit
+            result = result + (bit << 1)
+        }
+        result = result >> 1
+        bit = bit >> 2
+    }
+    
+    ret result
+}
+
+-- 最大公约数
+func gcd(a: i32, b: i32) -> i32
+{
+    let x = a
+    let y = b
+    while y != 0 {
+        let temp = y
+        y = x % y
+        x = temp
+    }
+    ret x
+}
+
+-- 最小公倍数
+func lcm(a: i32, b: i32) -> i32
+{
+    ret (a / gcd(a, b)) * b
+}
+
+-- 阶乘
+func factorial(n: i32) -> i32
+{
+    if n <= 1 ret 1
+    ret n * factorial(n - 1)
+}
+
+-- 斐波那契数列
+func fib(n: i32) -> i32
+{
+    if n <= 1 ret n
+    ret fib(n - 1) + fib(n - 2)
+}
+
+-- 随机数生成器
+static seed: u32 = 1
+
+func srand(s: u32) -> void
+{
+    seed = s
+}
+
+func rand() -> i32
+{
+    seed = seed * 1103515245 + 12345
+    ret (seed / 65536) % 32768
+}

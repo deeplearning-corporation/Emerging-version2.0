@@ -1,0 +1,56 @@
+-- Emerging 标准库核心定义
+-- 基础类型和常量
+
+-- 基本类型别名
+type i8 = byte
+type i16 = short
+type i32 = int
+type i64 = long
+
+type u8 = byte
+type u16 = ushort
+type u32 = uint
+type u64 = ulong
+
+type usize = u64
+type isize = i64
+
+-- 布尔常量
+const true = 1
+const false = 0
+
+-- 空指针
+const NULL = 0
+
+-- 标准错误码
+const SUCCESS = 0
+const ERROR = -1
+const EINVAL = 22    -- 无效参数
+const ENOMEM = 12    -- 内存不足
+const EACCES = 13    -- 权限拒绝
+const EEXIST = 17    -- 文件已存在
+const ENOSYS = 38    -- 功能未实现
+
+-- 断言宏
+func assert(cond: bool, msg: ptr) -> void
+{
+    if !cond {
+        out("Assertion failed: ")
+        out(msg)
+        out("\n")
+        sys.exit(1)
+    }
+}
+
+-- 最小值/最大值
+func min(a: i32, b: i32) -> i32
+{
+    if a < b ret a
+    ret b
+}
+
+func max(a: i32, b: i32) -> i32
+{
+    if a > b ret a
+    ret b
+}

@@ -1,0 +1,38 @@
+-- 操作系统抽象层
+
+namespace sys {
+    -- 系统调用
+    func open(path: ptr, flags: i32, mode: i32) -> i32
+    func read(fd: i32, buf: ptr, count: i32) -> i32
+    func write(fd: i32, buf: ptr, count: i32) -> i32
+    func close(fd: i32) -> i32
+    func lseek(fd: i32, offset: i32, whence: i32) -> i32
+    func unlink(path: ptr) -> i32
+    func rename(old: ptr, new: ptr) -> i32
+    
+    -- 进程控制
+    func exit(code: i32) -> void
+    func getpid() -> i32
+    
+    -- 内存管理
+    func brk(addr: ptr) -> ptr
+    func sbrk(increment: i32) -> ptr
+    
+    -- 时间
+    func time(tloc: ptr) -> i64
+    func sleep(seconds: i32) -> i32
+    func millis() -> i64
+    
+    -- 系统信息
+    func uname(buf: ptr) -> i32
+    func gethostname(buf: ptr, len: i32) -> i32
+}
+
+-- 平台特定实现
+#ifdef _WIN32
+    include <sys/windows.emh>
+#elif __linux__
+    include <sys/linux.emh>
+#elif __APPLE__
+    include <sys/macos.emh>
+#endif

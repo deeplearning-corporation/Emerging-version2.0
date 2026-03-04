@@ -1,0 +1,156 @@
+-- 内存管理函数
+
+-- 内存块结构
+struct mem_block {
+    size: i32
+    used: bool
+    next: ptr
+    prev: ptr
+}
+
+static heap_base: ptr = NULL
+static free_list: ptr = NULL
+
+-- 初始化内存分配器
+func mem_init(heap: ptr, size: i32) -> void
+{
+    heap_base = heap
+    free_list = heap
+    let block = free_list as mem_block*
+    block.size = size - sizeof(mem_block)
+    block.used = false
+    block.next = NULL
+    block.prev = NULL
+}
+
+-- 内存分配
+func malloc(size: i32) -> ptr
+{
+    -- 对齐到8字节
+    let aligned_size = (size + 7) & ~7
+    
+    let curr = free_list as mem_block*
+    let best: mem_block* = NULL
+    let best_size = -1
+    
+    -- 查找最佳适配块
+    while curr != NULL {
+        if !curr.used and curr.size >= aligned_size {
+            if best == NULL or curr.size < best_size {
+                best = curr
+                best_size = curr.size
+            }
+        }
+        curr = curr.next as mem_block*
+    }
+    
+    if best == NULL ret NULL
+    
+    -- 如果块太大，分割它
+    if best.size >= aligned_size + sizeof(mem_block) + 8 {
+        let new_block = (best + 1 + aligned_size) as mem_block*
+        new_block.size = best.size - aligned_size - sizeof(mem_block)
+        new_block.used = false
+        new_block.next = best.next
+        new_block.prev = best
+        
+        if best.next != NULL {
+            let next = best.next as mem_block*
+            next.prev = new_block
+        }
+        
+        best.next = new_block
+        best.size = aligned_size
+    }
+    
+    best.used = true
+    ret (best + 1) as ptr
+}
+
+-- 内存释放
+func free(ptr: ptr) -> void
+{
+    if ptr == NULL ret
+    
+    let block = (ptr - sizeof(mem_block)) as mem_block*
+    block.used = false
+    
+    -- 合并相邻空闲块
+    if block.next != NULL {
+        let next = block.next as mem_block*
+        if !next.used {
+            block.size = block.size + sizeof(mem_block) + next.size
+            block.next = next.next
+            if next.next != NULL {
+                let next_next = next.next as mem_block*
+                next_next.prev = block
+            }
+        }
+    }
+    
+    if block.prev != NULL {
+        let prev = block.prev as mem_block*
+        if !prev.used {
+            prev.size = prev.size + sizeof(mem_block) + block.size
+            prev.next = block.next
+            if block.next != NULL {
+                let next = block.next as mem_block*
+                next.prev = prev
+            }
+        }
+    }
+}
+
+-- 内存拷贝
+func memcpy(dest: ptr, src: ptr, n: i32) -> ptr
+{
+    let d = dest as byte*
+    let s = src as byte*
+    let i = 0
+    
+    -- 处理重叠区域
+    if d > s and d < s + n {
+        i = n - 1
+        while i >= 0 {
+            d[i] = s[i]
+            i = i - 1
+        }
+    } else {
+        i = 0
+        while i < n {
+            d[i] = s[i]
+            i = i + 1
+        }
+    }
+    
+    ret dest
+}
+
+-- 内存设置
+func memset(ptr: ptr, value: byte, n: i32) -> ptr
+{
+    let p = ptr as byte*
+    let i = 0
+    while i < n {
+        p[i] = value
+        i = i + 1
+    }
+    ret ptr
+}
+
+-- 内存比较
+func memcmp(ptr1: ptr, ptr2: ptr, n: i32) -> i32
+{
+    let p1 = ptr1 as byte*
+    let p2 = ptr2 as byte*
+    let i = 0
+    
+    while i < n {
+        if p1[i] != p2[i] {
+            ret p1[i] - p2[i]
+        }
+        i = i + 1
+    }
+    
+    ret 0
+}

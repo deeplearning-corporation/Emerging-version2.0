@@ -1,0 +1,215 @@
+-- 文件操作函数
+
+-- 文件打开模式
+const O_RDONLY = 0x0000
+const O_WRONLY = 0x0001
+const O_RDWR   = 0x0002
+const O_CREAT  = 0x0100
+const O_TRUNC  = 0x0200
+const O_APPEND = 0x0400
+
+-- 文件权限
+const S_IRUSR = 0x0400
+const S_IWUSR = 0x0200
+const S_IXUSR = 0x0100
+
+-- 文件位置
+const SEEK_SET = 0
+const SEEK_CUR = 1
+const SEEK_END = 2
+
+-- 文件流结构
+struct FILE {
+    fd: i32
+    flags: i32
+    pos: i32
+    buffer: ptr
+    buf_pos: i32
+    buf_size: i32
+    error: bool
+    eof: bool
+}
+
+-- 标准文件流
+var stdin: FILE* = NULL
+var stdout: FILE* = NULL
+var stderr: FILE* = NULL
+
+-- 初始化标准流
+func file_init() -> void
+{
+    stdin = malloc(sizeof(FILE))
+    stdout = malloc(sizeof(FILE))
+    stderr = malloc(sizeof(FILE))
+    
+    stdin.fd = 0
+    stdout.fd = 1
+    stderr.fd = 2
+    
+    stdin.flags = O_RDONLY
+    stdout.flags = O_WRONLY
+    stderr.flags = O_WRONLY
+    
+    stdin.buffer = malloc(1024)
+    stdout.buffer = malloc(1024)
+    stderr.buffer = malloc(1024)
+}
+
+-- 打开文件
+func fopen(filename: ptr, mode: ptr) -> FILE*
+{
+    let flags = 0
+    let i = 0
+    
+    while mode[i] != 0 {
+        if mode[i] == 'r' {
+            flags = flags | O_RDONLY
+        } elif mode[i] == 'w' {
+            flags = flags | O_WRONLY | O_CREAT | O_TRUNC
+        } elif mode[i] == 'a' {
+            flags = flags | O_WRONLY | O_CREAT | O_APPEND
+        } elif mode[i] == '+' {
+            flags = flags & ~(O_RDONLY | O_WRONLY) | O_RDWR
+        }
+        i = i + 1
+    }
+    
+    let fd = sys.open(filename, flags, 0644)
+    if fd < 0 ret NULL
+    
+    let file = malloc(sizeof(FILE))
+    file.fd = fd
+    file.flags = flags
+    file.pos = 0
+    file.buffer = malloc(4096)
+    file.buf_pos = 0
+    file.buf_size = 0
+    file.error = false
+    file.eof = false
+    
+    ret file
+}
+
+-- 关闭文件
+func fclose(stream: FILE*) -> i32
+{
+    if stream == NULL ret -1
+    
+    if stream.flags & O_WRONLY or stream.flags & O_RDWR {
+        if stream.buf_pos > 0 {
+            sys.write(stream.fd, stream.buffer, stream.buf_pos)
+        }
+    }
+    
+    free(stream.buffer)
+    let result = sys.close(stream.fd)
+    free(stream)
+    
+    ret result
+}
+
+-- 读取字符
+func fgetc(stream: FILE*) -> i32
+{
+    if stream.buf_pos >= stream.buf_size {
+        stream.buf_size = sys.read(stream.fd, stream.buffer, 4096)
+        stream.buf_pos = 0
+        
+        if stream.buf_size <= 0 {
+            stream.eof = true
+            ret -1
+        }
+    }
+    
+    let c = stream.buffer[stream.buf_pos]
+    stream.buf_pos = stream.buf_pos + 1
+    stream.pos = stream.pos + 1
+    ret c as i32
+}
+
+-- 写入字符
+func fputc(c: i32, stream: FILE*) -> i32
+{
+    if stream.buf_pos >= 4096 {
+        if sys.write(stream.fd, stream.buffer, stream.buf_pos) != stream.buf_pos {
+            stream.error = true
+            ret -1
+        }
+        stream.buf_pos = 0
+    }
+    
+    stream.buffer[stream.buf_pos] = c as byte
+    stream.buf_pos = stream.buf_pos + 1
+    stream.pos = stream.pos + 1
+    ret c
+}
+
+-- 读取字符串
+func fgets(buf: ptr, num: i32, stream: FILE*) -> ptr
+{
+    let i = 0
+    while i < num - 1 {
+        let c = fgetc(stream)
+        if c == -1 {
+            if i == 0 ret NULL
+            break
+        }
+        buf[i] = c as byte
+        i = i + 1
+        if c == '\n' break
+    }
+    buf[i] = 0
+    ret buf
+}
+
+-- 写入字符串
+func fputs(s: ptr, stream: FILE*) -> i32
+{
+    let len = strlen(s)
+    let i = 0
+    while i < len {
+        if fputc(s[i], stream) == -1 ret -1
+        i = i + 1
+    }
+    ret len
+}
+
+-- 文件定位
+func fseek(stream: FILE*, offset: i32, origin: i32) -> i32
+{
+    if stream.flags & O_WRONLY or stream.flags & O_RDWR {
+        if stream.buf_pos > 0 {
+            sys.write(stream.fd, stream.buffer, stream.buf_pos)
+            stream.buf_pos = 0
+        }
+    }
+    
+    stream.buf_size = 0
+    stream.buf_pos = 0
+    
+    ret sys.lseek(stream.fd, offset, origin)
+}
+
+-- 获取当前位置
+func ftell(stream: FILE*) -> i32
+{
+    ret stream.pos
+}
+
+-- 判断文件结束
+func feof(stream: FILE*) -> bool
+{
+    ret stream.eof
+}
+
+-- 删除文件
+func remove(filename: ptr) -> i32
+{
+    ret sys.unlink(filename)
+}
+
+-- 重命名文件
+func rename(oldname: ptr, newname: ptr) -> i32
+{
+    ret sys.rename(oldname, newname)
+}

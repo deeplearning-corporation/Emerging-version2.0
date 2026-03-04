@@ -1,0 +1,121 @@
+-- 时间日期函数
+
+-- 时间结构体
+struct tm {
+    sec: i32    -- 秒 0-59
+    min: i32    -- 分 0-59
+    hour: i32   -- 时 0-23
+    mday: i32   -- 日 1-31
+    mon: i32    -- 月 0-11
+    year: i32   -- 年 从1900算起
+    wday: i32   -- 星期 0-6 (0=周日)
+    yday: i32   -- 年中的日 0-365
+    isdst: i32  -- 夏令时标志
+}
+
+-- 获取当前时间戳
+func time(tloc: ptr) -> i64
+{
+    ret sys.time(tloc)
+}
+
+-- 将时间戳转换为tm结构
+func localtime(timep: ptr, result: ptr) -> ptr
+{
+    let t = *(timep as i64*)
+    let tm = result as tm*
+    
+    -- 计算天数
+    let days = t / 86400
+    t = t % 86400
+    
+    -- 计算时间
+    tm.hour = t / 3600
+    t = t % 3600
+    tm.min = t / 60
+    tm.sec = t % 60
+    
+    -- 计算年份 (从1970年开始)
+    let years = 1970
+    while true {
+        let days_in_year = 365
+        if (years % 4 == 0 and years % 100 != 0) or years % 400 == 0 {
+            days_in_year = 366
+        }
+        if days < days_in_year break
+        days = days - days_in_year
+        years = years + 1
+    }
+    
+    tm.year = years - 1900
+    
+    -- 计算月份
+    let month_days = [31,28,31,30,31,30,31,31,30,31,30,31]
+    if (years % 4 == 0 and years % 100 != 0) or years % 400 == 0 {
+        month_days[1] = 29
+    }
+    
+    let months = 0
+    while days >= month_days[months] {
+        days = days - month_days[months]
+        months = months + 1
+    }
+    
+    tm.mon = months
+    tm.mday = days + 1
+    
+    -- 计算星期几 (1970-01-01 是星期四)
+    tm.wday = (4 + (*(timep as i64*) / 86400)) % 7
+    
+    -- 计算年中的天
+    tm.yday = 0
+    let i = 0
+    while i < tm.mon {
+        tm.yday = tm.yday + month_days[i]
+        i = i + 1
+    }
+    tm.yday = tm.yday + tm.mday - 1
+    
+    tm.isdst = 0
+    
+    ret result
+}
+
+-- 格式化时间
+func asctime(tm: ptr, buf: ptr) -> ptr
+{
+    let wday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    let mon = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    let t = tm as tm*
+    
+    sprintf(buf, "%s %s %2d %02d:%02d:%02d %04d\n",
+            wday[t.wday],
+            mon[t.mon],
+            t.mday,
+            t.hour,
+            t.min,
+            t.sec,
+            t.year + 1900)
+    
+    ret buf
+}
+
+-- 休眠（秒）
+func sleep(seconds: i32) -> i32
+{
+    sys.sleep(seconds)
+    ret 0
+}
+
+-- 毫秒级休眠
+func msleep(milliseconds: i32) -> void
+{
+    sys.sleep(milliseconds / 1000)
+}
+
+-- 获取当前时间（毫秒）
+func millis() -> i64
+{
+    ret sys.millis()
+}
